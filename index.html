@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>matching</title>
+        <link rel="stylesheet" href="style.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+        <script src="src/publicmain.js"></script>
+        <script>
+//            var id;
+            var main;
+            window.onload = function() {
+
+                const socket = io();
+                main = new PublicMain(socket);
+    
+            }
+
+        </script>
+        
+    </head>
+    <body>
+        <header>
+            <h1>matching</h1>
+        </header>
+
+
+        <article>
+            <input type="text" id="message" style="width:300px;">
+            <button onclick="main.sendMessage();" >送信</button>
+            <div id="chat" cols="50" rows="50" style="width:300px;">
+            </div>
+            <!--
+            <textarea readonly id="chat" cols="50" rows="50" style="position: absolute; right:100px; top:50px;"></textarea>
+            -->
+        
+        </article>
+
+
+
+        <footer>
+
+        </footer>
+    </body>
+</html>
