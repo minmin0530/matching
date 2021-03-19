@@ -1,5 +1,13 @@
 var message = [];
-
+var dates = [];
+var colors = [
+    "red",
+    "green",
+    "blue",
+    "violet",
+    "black",
+    "cyan"
+];
 class PublicMain {
     constructor(socket) {
         this.socket = socket;
@@ -252,7 +260,21 @@ class PublicMain {
             this.socket.emit('getUserId', {userid: data, roomhost: this.roomhost, roomname: this.roomname});
         });
         this.socket.on('connected', data => {
-            console.log("connected" + data);
+            if (data.roomID == this.roomid) {
+                let messgeUnit = "";
+                message = data.room.message;
+                dates = data.room.date;
+                let num = message.length;
+                if (message.length > 20) {
+                    num = message.length - 20;
+                } else {
+                    num = 0;
+                }
+                for (let i = message.length - 1; i >= num; --i) {
+                    messgeUnit += "<span style='font-size:8px'>" + dates[i].substr(5,5) + " " + dates[i].substr(11,5) + "</span>" + message[i] + "<br>";
+                }
+                document.getElementById("chat").innerHTML = messgeUnit;
+            }
 
 
             // if (data.room.voxel.length > 0) {
@@ -333,6 +355,7 @@ class PublicMain {
                 if (data.roomID == this.roomid) {
                     let messgeUnit = "";
                     message.push(data.message);
+                    dates.push(data.date);
                     let num = message.length;
                     if (message.length > 20) {
                         num = message.length - 20;
@@ -340,7 +363,7 @@ class PublicMain {
                         num = 0;
                     }
                     for (let i = message.length - 1; i >= num; --i) {
-                        messgeUnit += message[i] + "<br>";
+                        messgeUnit += "<span style='font-size:8px'>" + dates[i].substr(5,5) + " " + dates[i].substr(11,5) + "</span>" + message[i] + "<br>";
                     }
                     document.getElementById("chat").innerHTML = messgeUnit;
                 }
@@ -352,10 +375,12 @@ class PublicMain {
 
     }
     sendMessage() {
+
         this.socket.emit("sendMessage",
           {
               roomID: this.roomid,
-              message: "<span style='color:red'>" + document.getElementById("message").value + "</span>",
+              message: "<span style='color:" + colors[this.id % 6]+ "'>" + document.getElementById("message").value + "</span>",
+              date: new Date()
           }
         );
         document.getElementById("message").value = "";

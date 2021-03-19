@@ -12,18 +12,17 @@ const users = new Map();
 const loginUsers = [];
 
 const url = 'mongodb://localhost:27017';
-const dbName = 'matching';
+const dbName = 'matching0001';
 const connectOption = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 }
-
+var globalUserID = 0;
 class Room {
   constructor() {
-    this.voxel = [];
     this.users = [];
     this.roomid = null;
-    this.date = null;
+    this.date = [];
     this.message = [];
   }
 }
@@ -115,7 +114,8 @@ const transactionVoxelDownload = async (emitid, data, io, socketid) => {
       const doc = await collection.findOne({roomid:data});
       if (doc) {
         room[loginUsers[loginUsers.length - 1].roomid].message = doc.message;
-        room[loginUsers[loginUsers.length - 1].roomid].voxel = doc.voxel;
+        room[loginUsers[loginUsers.length - 1].roomid].date = doc.date;
+        // room[loginUsers[loginUsers.length - 1].roomid].voxel = doc.voxel;
       }
      console.log("roomid:" + loginUsers[loginUsers.length - 1].roomid);
   //        client.close();
@@ -126,7 +126,7 @@ const transactionVoxelDownload = async (emitid, data, io, socketid) => {
     }
   }
   loginUsers[loginUsers.length - 1].socketid = socketid;
-  io.sockets.connected[socketid].emit(emitid, {
+  io.to(socketid).emit(emitid, {
     userID: loginUsers[loginUsers.length - 1].tempid,
     roomID: loginUsers[loginUsers.length - 1].roomid,
     color: loginUsers[loginUsers.length - 1].color,
@@ -140,7 +140,7 @@ const transactionVoxelDownload = async (emitid, data, io, socketid) => {
 
 const transactionKururiInsert = async (data, res) => {
   let client;
-  data = Object.assign(data, {date: new Date() });
+  data = Object.assign(data, {date: new Date(Date.now() + ((new Date().getTimezoneOffset() + (18 * 60)) * 60 * 1000)) });
   try {
     client = await MongoClient.connect('mongodb://127.0.0.1:27017', {useNewUrlParser:true, useUnifiedTopology:true});
     const db = client.db(dbName);
@@ -152,13 +152,13 @@ const transactionKururiInsert = async (data, res) => {
   } catch (error) {
     console.log(error);
   } finally {
-    client.close();
+    // client.close();
   }
 };
 
 const transactionVoxelInsert = async (data, res) => {
   let client;
-  data = Object.assign(data, {date: new Date() });
+//   data = Object.assign(data, {date: new Date() });
   try {
     client = await MongoClient.connect('mongodb://127.0.0.1:27017', {useNewUrlParser:true, useUnifiedTopology:true});
     const db = client.db(dbName);
@@ -175,9 +175,37 @@ console.log(data.message);
   } catch (error) {
     console.log(error);
   } finally {
-    client.close();
+    // client.close();
   }
 };
+
+const transactionMessageInsert = async (data) => {
+    let client;
+    // data = Object.assign(data, {date: new Date() });
+    try {
+      client = await MongoClient.connect('mongodb://127.0.0.1:27017', {useNewUrlParser:true, useUnifiedTopology:true});
+      const db = client.db(dbName);
+      const collection = db.collection('room');
+  console.log(data.message);
+      const a = await collection.updateOne({
+        roomid: data.roomid//, voxel: data.voxel, users: data.users, date:data.date
+      }, {$set:data}, true );
+      if (a.result.n == 0) {
+        await collection.insertOne({roomid: data.roomid, message: data.message, users: data.users, date: data.date});
+      } else {
+        console.log("insert error");
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+    //   client.close();
+    }
+  };
+  
+
+
+
+
 
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -294,10 +322,11 @@ io.on('connection', socket => {
       room: room[loginUsers[index].roomid],
     });
   } else {
-    io.to(socket.id).emit('getUserId');
+    io.to(socket.id).emit('getUserId', globalUserID);
+    globalUserID += 1;
   }
   socket.on('getUserId', data => {
-    if (data == null) {
+      console.log(data)
     let user = {
       mail:"", name:"", password:"", roomid:"", tempid:"", socketid:"",
       color: [
@@ -315,32 +344,6 @@ io.on('connection', socket => {
     loginUsers.push(user);
 
     transactionVoxelDownload('connected', loginUsers[loginUsers.length - 1].roomid, io, socket.id);
-    } else {
-  let index = loginUsers.length - 1;
-/*
-  for (const l of loginUsers) {
-    if (l.tempid == data) {
-      break;
-    }
-    ++index;
-  }
-*/
-console.log("index:"+index);
-io.to(socket.id).emit('connected', {
-      userID: data,//loginUsers[index].tempid,
-      roomID: 0,//loginUsers[index].roomid,
-      //color: loginUsers[index].color,
-      color: [
-        Math.floor( Math.random() * 16 ),
-        Math.floor( Math.random() * 16 ),
-        Math.floor( Math.random() * 16 ),
-        Math.floor( Math.random() * 16 ),
-        Math.floor( Math.random() * 16 ),
-        Math.floor( Math.random() * 16 ),
-      ],
-      room: room[0],
-    });
-    }
   });
   socket.on('selectRoom', data => {
     loginUsers[loginUsers.length - 1].roomid = data;    
@@ -357,50 +360,56 @@ io.to(socket.id).emit('connected', {
   socket.on('loadRoom', data => {
   });
 
-  socket.on('put', data => {
-    room[data.roomID].date = new Date();
-    room[data.roomID].voxel.push(data.voxel);
-    console.log(data.voxel);
-    io.emit('put', {
-        roomID: data.roomID,
-        userID: data.userID,
-        voxel: data.voxel,
-    });
-  });
+//   socket.on('put', data => {
+//     room[data.roomID].date = new Date();
+//     room[data.roomID].voxel.push(data.voxel);
+//     console.log(data.voxel);
+//     io.emit('put', {
+//         roomID: data.roomID,
+//         userID: data.userID,
+//         voxel: data.voxel,
+//     });
+//   });
 
-  socket.on('deleteVoxel', data => {
-    room[data.roomID].date = new Date();
-    room[data.roomID].voxel.splice(data.index, 1);
-    console.log(data.voxel);
-    io.emit('deleteVoxel', {
-        roomID: data.roomID,
-        userID: data.userID,
-        index: data.index,
-    });
-  });
+//   socket.on('deleteVoxel', data => {
+//     room[data.roomID].date = new Date();
+//     room[data.roomID].voxel.splice(data.index, 1);
+//     console.log(data.voxel);
+//     io.emit('deleteVoxel', {
+//         roomID: data.roomID,
+//         userID: data.userID,
+//         index: data.index,
+//     });
+//   });
 
-  socket.on('deleteAll', data => {
-    room[data.roomID].date = new Date();
-    room[data.roomID].voxel.length = 0;
-    room[data.roomID].voxel = [];
+//   socket.on('deleteAll', data => {
+//     room[data.roomID].date = new Date();
+//     room[data.roomID].voxel.length = 0;
+//     room[data.roomID].voxel = [];
     
-    console.log("deleteAll");
-    io.emit('deleteAll', {
-        roomID: data.roomID,
-        userID: data.userID,
-    });
-  });
+//     console.log("deleteAll");
+//     io.emit('deleteAll', {
+//         roomID: data.roomID,
+//         userID: data.userID,
+//     });
+//   });
 
-  socket.on('updatePosition', data => {
-      users.set(socket.id, {
-          clientID: data.clientID,
-          position: data.position
-      });
-      io.emit('updatePosition', data);
-  });
+//   socket.on('updatePosition', data => {
+//       users.set(socket.id, {
+//           clientID: data.clientID,
+//           position: data.position
+//       });
+//       io.emit('updatePosition', data);
+//   });
 
   socket.on('sendMessage', data => {
     room[data.roomID].message.push(data.message);
+    const d = new Date(Date.now() + ((new Date().getTimezoneOffset() + (18 * 60)) * 60 * 1000));
+    room[data.roomID].date.push( d );
+    
+    transactionMessageInsert(room[data.roomID]);
+
+    data.date = d;
     io.emit('recieveMessage', data);
   });
   // socket.on("disconnect",  () => {
