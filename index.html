@@ -2,6 +2,7 @@
 <html>
     <head>
         <title>matching</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
         <link rel="stylesheet" href="style.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
         <script src="src/publicmain.js"></script>
@@ -20,14 +21,14 @@
     </head>
     <body>
         <header>
-            <h1>matching</h1>
+            <h1>matching<a href="/account" style="padding-left: 50px; font-size: 0.5em;">アカウント設定</a></h1>
         </header>
 
 
         <article>
             <input type="text" id="message" style="width:300px;">
             <button onclick="main.sendMessage();" >送信</button>
-            <div id="chat" cols="50" rows="50" style="width:300px;">
+            <div id="chat">
             </div>
             <!--
             <textarea readonly id="chat" cols="50" rows="50" style="position: absolute; right:100px; top:50px;"></textarea>

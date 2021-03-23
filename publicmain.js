@@ -1,19 +1,21 @@
 var message = [];
 var dates = [];
-var colors = [
-    "red",
-    "green",
-    "blue",
-    "violet",
-    "black",
-    "cyan"
-];
 class PublicMain {
     constructor(socket) {
         this.socket = socket;
         this.roomhost = location.pathname.split('/')[1];
         this.roomname = location.pathname.split('/')[2];
         this.roomid = 0;
+
+        fetch('/apiaccount').then( (res) => res.json() ).then( (docs) => {
+            console.log(docs);
+            this.name = docs.name;
+            this.color = docs.color;
+            // document.getElementById("age").value = docs.age;
+            // document.getElementById("pref").value = docs.pref;
+            this.image = docs.image;
+            
+        });
 
         this.init();
     }
@@ -260,10 +262,9 @@ class PublicMain {
             this.socket.emit('getUserId', {userid: data, roomhost: this.roomhost, roomname: this.roomname});
         });
         this.socket.on('connected', data => {
-            if (data.roomID == this.roomid) {
+            if (data.roomid == this.roomid) {
                 let messgeUnit = "";
-                message = data.room.message;
-                dates = data.room.date;
+                message = data.message;
                 let num = message.length;
                 if (message.length > 20) {
                     num = message.length - 20;
@@ -271,7 +272,7 @@ class PublicMain {
                     num = 0;
                 }
                 for (let i = message.length - 1; i >= num; --i) {
-                    messgeUnit += "<span style='font-size:8px'>" + dates[i].substr(5,5) + " " + dates[i].substr(11,5) + "</span>" + message[i] + "<br>";
+                    messgeUnit +=  "<div style='display:flex; margin:5px;'><img src='" + message[i].image + "' width='48px' height='48px' style='float:left; background:" + message[i].color + ";'>" + "<span style='font-size:8px'>" + message[i].name + "<br>" + message[i].date.substr(5,5) + " " + message[i].date.substr(11,5) + "</span>" + "<span style='color:" + message[i].color + "'>" + message[i].text + "</span></div>";
                 }
                 document.getElementById("chat").innerHTML = messgeUnit;
             }
@@ -352,10 +353,9 @@ class PublicMain {
 
 
         this.socket.on("recieveMessage", (data) => {
-                if (data.roomID == this.roomid) {
+                if (data.roomid == this.roomid) {
                     let messgeUnit = "";
-                    message.push(data.message);
-                    dates.push(data.date);
+                    message.push(data.message[0]);
                     let num = message.length;
                     if (message.length > 20) {
                         num = message.length - 20;
@@ -363,7 +363,7 @@ class PublicMain {
                         num = 0;
                     }
                     for (let i = message.length - 1; i >= num; --i) {
-                        messgeUnit += "<span style='font-size:8px'>" + dates[i].substr(5,5) + " " + dates[i].substr(11,5) + "</span>" + message[i] + "<br>";
+                        messgeUnit +=  "<div style='display:flex; margin:5px;'><img src='" + message[i].image + "' width='48px' height='48px' style='float:left; background:" + message[i].color + ";'>" + "<span style='font-size:8px'>" + message[i].name + "<br>" + message[i].date.substr(5,5) + " " + message[i].date.substr(11,5) + "</span>" + "<span style='color:" + message[i].color + "'>" + message[i].text + "</span></div>";
                     }
                     document.getElementById("chat").innerHTML = messgeUnit;
                 }
@@ -376,11 +376,19 @@ class PublicMain {
     }
     sendMessage() {
 
+        const contents = [{
+            text:  document.getElementById("message").value,
+            date: new Date(),
+            userid: this.id,
+            name: this.name,
+            color: this.color,
+            image: this.image
+        }];
+        contents.push();
         this.socket.emit("sendMessage",
           {
-              roomID: this.roomid,
-              message: "<span style='color:" + colors[this.id % 6]+ "'>" + document.getElementById("message").value + "</span>",
-              date: new Date()
+              roomid: this.roomid,
+              message: contents
           }
         );
         document.getElementById("message").value = "";
